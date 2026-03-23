@@ -1,153 +1,110 @@
-import { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { CartContext } from '../context/CartContext';
-import './ProductDetail.css';
+import { MOCK_PRODUCTS, getCategoryById } from '../data/products';
+import { useState } from 'react';
 
 const ProductDetail = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const { addToCart } = useContext(CartContext);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [toast, setToast] = useState('');
 
-    const [product, setProduct] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+  // TODO: fetch from API — axios.get(`/api/products/${id}`)
+  const product = MOCK_PRODUCTS.find(p => p._id === id);
 
-    const [qty, setQty] = useState(1);
-    const [customText, setCustomText] = useState('');
-    const [mainImage, setMainImage] = useState('');
+  if (!product) return (
+    <div className="empty-state" style={{ paddingTop:'8rem' }}>
+      <div className="icon">🔍</div>
+      <div className="title">Product not found</div>
+      <button className="btn btn-clay" style={{ marginTop:'1rem' }} onClick={() => navigate('/shop')}>← Back to Shop</button>
+    </div>
+  );
 
-    useEffect(() => {
-        const fetchProduct = async () => {
-            try {
-                const { data } = await axios.get(`/api/products/${id}`);
-                setProduct(data);
-                setMainImage(data.images[0]);
-                setLoading(false);
-            } catch (err) {
-                setError(err.response && err.response.data.message ? err.response.data.message : err.message);
-                setLoading(false);
+  const cat = getCategoryById(product.category);
+
+  const handleBuy = () => {
+    // TODO: axios.post('/api/orders', { productId: product._id })
+    setToast(`🎉 Order placed for "${product.name}"!`);
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  return (
+    <div style={{ minHeight:'100vh', background:'var(--cream)', padding:'2rem' }}>
+      <div style={{ maxWidth:900, margin:'0 auto' }}>
+
+        {/* Back */}
+        <button className="btn btn-warm btn-sm" style={{ marginBottom:'1.5rem' }} onClick={() => navigate('/shop')}>
+          ← Back to Shop
+        </button>
+
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'2.5rem', alignItems:'start' }}>
+
+          {/* IMAGE */}
+          <div style={{ borderRadius:24, overflow:'hidden', background:cat.color, aspectRatio:'1', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'6rem', position:'relative' }}>
+            {product.images?.[0]
+              ? <img src={product.images[0]} alt={product.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+              : <span>{product.emoji}</span>
             }
-        };
+            <span style={{ position:'absolute', top:12, right:12, background:'rgba(250,245,237,0.92)', backdropFilter:'blur(4px)', borderRadius:20, padding:'4px 12px', fontSize:'0.72rem', fontWeight:700, color:'var(--muted)', textTransform:'uppercase' }}>
+              {cat.icon} {cat.name}
+            </span>
+          </div>
 
-        fetchProduct();
-    }, [id]);
+          {/* INFO */}
+          <div>
+            <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'2.2rem', fontWeight:600, lineHeight:1.15, marginBottom:'0.5rem' }}>
+              {product.name}
+            </h1>
 
-    const handleAddToCart = () => {
-        addToCart(product, qty, customText);
-        navigate('/cart');
-    };
-
-    const handleWhatsAppInquiry = () => {
-        const message = `Hi, I am interested in the ${product.name}. Could you provide more details?`;
-        const encodedMessage = encodeURIComponent(message);
-        // Using a dummy number for the brand
-        window.open(`https://wa.me/919876543210?text=${encodedMessage}`, '_blank');
-    }
-
-    if (loading) return <div className="container py-3xl text-center">Loading product details...</div>;
-    if (error) return <div className="container py-3xl text-center text-accent">{error}</div>;
-    if (!product) return null;
-
-    return (
-        <div className="product-detail-page container py-2xl">
-            <button className="btn btn-outline mb-xl" onClick={() => navigate(-1)}>
-                &larr; Back to Shop
-            </button>
-
-            <div className="product-detail-grid grid grid-cols-2 gap-2xl">
-                {/* Image Gallery */}
-                <div className="product-gallery">
-                    <div className="main-image-container">
-                        <img src={mainImage} alt={product.name} className="main-image" />
-                    </div>
-                    {product.images.length > 1 && (
-                        <div className="thumbnail-grid flex gap-sm mt-md">
-                            {product.images.map((img, index) => (
-                                <div
-                                    key={index}
-                                    className={`thumbnail ${mainImage === img ? 'active' : ''}`}
-                                    onClick={() => setMainImage(img)}
-                                >
-                                    <img src={img} alt={`${product.name} thumbnail ${index + 1}`} />
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Product Info */}
-                <div className="product-info">
-                    <div className="text-muted text-sm mb-xs uppercase spacing-wide">{product.category}</div>
-                    <h1 className="product-h1 mb-sm">{product.name}</h1>
-                    <div className="product-price-large mb-lg">₹{product.price}</div>
-
-                    <p className="product-description mb-xl">{product.description}</p>
-
-                    <div className="product-meta grid grid-cols-2 gap-md mb-xl p-md bg-surface border-radius-md">
-                        <div><span className="font-medium">Material:</span> {product.material}</div>
-                        <div><span className="font-medium">Size:</span> {product.size}</div>
-                        <div><span className="font-medium">Crafted in:</span> Jaipur</div>
-                        <div><span className="font-medium">Delivery:</span> {product.deliveryTime}</div>
-                    </div>
-
-                    <div className="stock-status mb-lg">
-                        {product.stock > 0 ? (
-                            <span className="text-success">In Stock</span>
-                        ) : (
-                            <span className="text-accent">Made to Order (Takes 4-5 Days)</span>
-                        )}
-                    </div>
-
-                    <div className="purchase-options flex flex-col gap-md">
-                        <div className="qty-selector flex items-center gap-md">
-                            <label className="font-medium">Quantity:</label>
-                            <select
-                                value={qty}
-                                onChange={(e) => setQty(Number(e.target.value))}
-                                className="form-control w-auto"
-                            >
-                                {[...Array(product.stock > 0 ? Math.min(product.stock, 5) : 5).keys()].map((x) => (
-                                    <option key={x + 1} value={x + 1}>
-                                        {x + 1}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {product.isCustomizable && (
-                            <div className="customization-field mt-sm">
-                                <label className="form-label">{product.customizationOptions || 'Add custom text/name (Optional)'}</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="e.g. Ramesh Family"
-                                    value={customText}
-                                    onChange={(e) => setCustomText(e.target.value)}
-                                    maxLength={20}
-                                />
-                            </div>
-                        )}
-
-                        <div className="action-buttons flex gap-md mt-md">
-                            <button
-                                className="btn btn-primary w-full"
-                                onClick={handleAddToCart}
-                            >
-                                Add to Cart
-                            </button>
-                            <button
-                                className="btn btn-outline w-full whatsapp-btn"
-                                onClick={handleWhatsAppInquiry}
-                            >
-                                Inquire on WhatsApp
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'2rem', fontWeight:600, color:'var(--clay)', marginBottom:'1rem' }}>
+              ₹{product.price.toLocaleString('en-IN')}
             </div>
+
+            <p style={{ fontSize:'0.9rem', color:'var(--muted)', lineHeight:1.7, marginBottom:'1.5rem' }}>
+              {product.description}
+            </p>
+
+            {/* Details grid */}
+            {[
+              ['Artisan',   product.seller?.name],
+              ['Village',   product.seller?.village],
+              ['Technique', product.technique],
+              ['Origin',    product.origin],
+              ['Stock',     `${product.stock} available`],
+              ['Sold',      `${product.sold} times`],
+            ].map(([label, value]) => value && (
+              <div key={label} style={{ display:'flex', gap:'0.6rem', marginBottom:'0.5rem', alignItems:'baseline' }}>
+                <span style={{ fontSize:'0.7rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--muted)', minWidth:70 }}>{label}</span>
+                <span style={{ fontSize:'0.88rem', color:'var(--ink)', fontWeight:600 }}>{value}</span>
+              </div>
+            ))}
+
+            {/* Tags */}
+            <div style={{ display:'flex', gap:'0.4rem', flexWrap:'wrap', margin:'1.2rem 0' }}>
+              {product.tags?.map(tag => (
+                <span key={tag} style={{ background:'var(--warm)', border:'1px solid var(--border)', borderRadius:20, padding:'3px 10px', fontSize:'0.72rem', color:'var(--muted)', fontWeight:600 }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            {/* CTA */}
+            {product.stock > 0 ? (
+              <button className="btn btn-clay btn-lg btn-full" onClick={handleBuy}>
+                Buy Now — ₹{product.price.toLocaleString('en-IN')}
+              </button>
+            ) : (
+              <div className="badge badge-red" style={{ padding:'0.6rem 1.2rem', fontSize:'0.8rem' }}>Out of Stock</div>
+            )}
+
+            <p style={{ fontSize:'0.72rem', color:'var(--muted)', marginTop:'0.7rem', textAlign:'center' }}>
+              🔒 Secure payment via Razorpay
+            </p>
+          </div>
         </div>
-    );
+      </div>
+
+      {toast && <div className="toast">{toast}</div>}
+    </div>
+  );
 };
 
 export default ProductDetail;
