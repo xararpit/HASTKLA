@@ -1,0 +1,149 @@
+.hero {
+    height: 80vh;
+    min-height: 500px;
+    display: flex;
+    align-items: center;
+    background-color: var(--color-secondary-light);
+    /* Fallback before image */
+    background-image: linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.9)), url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23EBD9C3"/></svg>');
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.hero-content {
+    max-width: 600px;
+}
+
+.hero h1 {
+    font-size: 3.5rem;
+    color: var(--color-primary-dark);
+    margin-bottom: var(--spacing-md);
+    line-height: 1.1;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    color: var(--color-text-main);
+    margin-bottom: var(--spacing-lg);
+    opacity: 0.9;
+}
+
+/* Process Section */
+.process-step {
+    padding: var(--spacing-xl);
+    background-color: var(--color-background);
+    border-radius: var(--radius-lg);
+    transition: transform var(--transition-normal);
+}
+
+.process-step:hover {
+    transform: translateY(-5px);
+}
+
+.step-number {
+    width: 50px;
+    height: 50px;
+    background-color: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 auto var(--spacing-md);
+}
+
+.process-step h3 {
+    color: var(--color-primary-dark);
+}
+
+/* Category Cards */
+.category-card {
+    display: block;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-normal);
+    background: var(--color-surface);
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.category-image {
+    height: 300px;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--color-secondary);
+}
+
+/* Placeholder gradients until actual images are added */
+.textile-bg {
+    background-image: linear-gradient(45deg, var(--color-secondary) 0%, var(--color-primary-light) 100%);
+}
+
+.metal-bg {
+    background-image: linear-gradient(45deg, #e0e0e0 0%, #a0a0a0 100%);
+}
+
+.category-info {
+    padding: var(--spacing-lg);
+    text-align: center;
+}
+
+.category-info h3 {
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-text-main);
+}
+
+.category-info p {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+}
+
+/* Utilities inside Home */
+.py-3xl {
+    padding: var(--spacing-3xl) 0;
+}
+
+.pt-2xl {
+    padding-top: var(--spacing-2xl);
+}
+
+.pb-3xl {
+    padding-bottom: var(--spacing-3xl);
+}
+
+.mb-xl {
+    margin-bottom: var(--spacing-xl);
+}
+
+.mb-2xl {
+    margin-bottom: var(--spacing-2xl);
+}
+
+.mb-base {
+    margin-bottom: 1rem;
+}
+
+.italic {
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 2.5rem;
+    }
+
+    .grid-cols-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .category-image {
+        height: 200px;
+    }
+}
