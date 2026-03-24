@@ -1,43 +1,52 @@
-import { useContext } from 'react';
-import { Link } from 'react-router-dom';
-import { CartContext } from '../context/CartContext';
-import { AuthContext } from '../context/AuthContext';
-import './Navbar.css';
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const Navbar = () => {
-    const { getCartCount } = useContext(CartContext);
-    const { user, logout } = useContext(AuthContext);
+  const { user, logout, isAdmin } = useAuth()
+  const navigate = useNavigate()
 
-    return (
-        <header className="navbar">
-            <div className="container navbar-container">
-                <Link to="/" className="navbar-logo">
-                    Twilight<span>Star</span>
-                </Link>
-                <nav className="navbar-links">
-                    <Link to="/" className="nav-link">Home</Link>
-                    <Link to="/shop" className="nav-link">Shop</Link>
-                    <Link to="/about" className="nav-link">About</Link>
-                </nav>
-                <div className="navbar-actions">
-                    {user ? (
-                        <div className="flex gap-md items-center">
-                            <span className="text-sm">Hi, {user.name.split(' ')[0]}</span>
-                            {user.isAdmin && <Link to="/admin" className="nav-link">Admin</Link>}
-                            <button onClick={logout} className="nav-link bg-transparent border-0 cursor-pointer p-0 font-inherit">Logout</button>
-                        </div>
-                    ) : (
-                        <Link to="/login" className="nav-link">Login</Link>
-                    )}
+  const handleLogout = () => { logout(); navigate('/login') }
 
-                    <Link to="/cart" className="cart-icon">
-                        Cart
-                        {getCartCount() > 0 && <span className="cart-badge">{getCartCount()}</span>}
-                    </Link>
-                </div>
-            </div>
-        </header>
-    );
-};
+  return (
+    <nav style={{ position:'sticky', top:0, zIndex:100, background:'rgba(250,245,237,0.94)', backdropFilter:'blur(8px)', borderBottom:'1px solid var(--border)', padding:'0.9rem 2rem', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'1rem' }}>
 
-export default Navbar;
+      {/* Logo */}
+      <Link to="/shop" style={{ textDecoration:'none' }}>
+        <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.7rem', fontWeight:600, color:'var(--clay)', letterSpacing:'0.08em' }}>
+          HAST<span style={{ color:'var(--indigo)' }}>KLA</span>
+        </span>
+      </Link>
+
+      {/* Links */}
+      <div style={{ display:'flex', alignItems:'center', gap:'1.5rem' }}>
+        <Link to="/shop" style={{ fontSize:'0.82rem', fontWeight:600, color:'var(--muted)', textDecoration:'none', letterSpacing:'0.05em', textTransform:'uppercase' }}>
+          Shop
+        </Link>
+
+        {user ? (
+          <>
+            <Link to="/dashboard" style={{ fontSize:'0.82rem', fontWeight:600, color:'var(--muted)', textDecoration:'none', letterSpacing:'0.05em', textTransform:'uppercase' }}>
+              Dashboard
+            </Link>
+            <Link to="/list-product" style={{ fontSize:'0.82rem', fontWeight:600, color:'var(--muted)', textDecoration:'none', letterSpacing:'0.05em', textTransform:'uppercase' }}>
+              + Sell
+            </Link>
+            {isAdmin && (
+              <Link to="/admin" style={{ fontSize:'0.82rem', fontWeight:600, color:'var(--indigo)', textDecoration:'none', letterSpacing:'0.05em', textTransform:'uppercase' }}>
+                Admin
+              </Link>
+            )}
+            <button className="btn btn-warm btn-sm" onClick={handleLogout}>Log out</button>
+          </>
+        ) : (
+          <>
+            <Link to="/login"><button className="btn btn-ghost btn-sm">Log in</button></Link>
+            <Link to="/register"><button className="btn btn-clay btn-sm">Register Free</button></Link>
+          </>
+        )}
+      </div>
+    </nav>
+  )
+}
+
+export default Navbar

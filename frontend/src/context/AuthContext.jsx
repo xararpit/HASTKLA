@@ -1,83 +1,32 @@
-import { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import { createContext, useContext, useState } from 'react'
 
-export const AuthContext = createContext();
+const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('hastkla_user')) || null }
+    catch { return null }
+  })
 
-    useEffect(() => {
-        // Check if user is logged in
-        const storedUser = localStorage.getItem('userInfo');
-        if (storedUser) {
-            setUser(JSON.parse(storedUser));
-        }
-        setLoading(false);
-    }, []);
+  const login = (userData, token) => {
+    localStorage.setItem('hastkla_user',  JSON.stringify(userData))
+    localStorage.setItem('hastkla_token', token)
+    setUser(userData)
+  }
 
-    const login = async (email, password) => {
-        try {
-            const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            };
+  const logout = () => {
+    localStorage.removeItem('hastkla_user')
+    localStorage.removeItem('hastkla_token')
+    setUser(null)
+  }
 
-            const { data } = await axios.post(
-                '/api/users/login',
-                { email, password },
-                config
-            );
+  const isAdmin = user?.role === 'admin'
 
-            setUser(data);
-            localStorage.setItem('userInfo', JSON.stringify(data));
-            return { success: true };
-        } catch (error) {
-            return {
-                success: false,
-                message: error.response && error.response.data.message
-                    ? error.response.data.message
-                    : error.message,
-            };
-        }
-    };
+  return (
+    <AuthContext.Provider value={{ user, login, logout, isAdmin }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
 
-    const register = async (name, email, password) => {
-        try {
-            const config = {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            };
-
-            const { data } = await axios.post(
-                '/api/users/register',
-                { name, email, password },
-                config
-            );
-
-            setUser(data);
-            localStorage.setItem('userInfo', JSON.stringify(data));
-            return { success: true };
-        } catch (error) {
-            return {
-                success: false,
-                message: error.response && error.response.data.message
-                    ? error.response.data.message
-                    : error.message,
-            };
-        }
-    };
-
-    const logout = () => {
-        localStorage.removeItem('userInfo');
-        setUser(null);
-    };
-
-    return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
-            {!loading && children}
-        </AuthContext.Provider>
-    );
-};
+export const useAuth = () => useContext(AuthContext)
