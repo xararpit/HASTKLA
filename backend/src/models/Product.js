@@ -1,62 +1,34 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose'
 
 const productSchema = new mongoose.Schema({
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        ref: 'User',
-    },
-    name: {
-        type: String,
-        required: true
-    },
-    description: {
-        type: String,
-        required: true
-    },
-    category: {
-        type: String,
-        required: true,
-        enum: ['Textile', 'Metal']
-    },
-    price: {
-        type: Number,
-        required: true,
-        default: 0
-    },
-    images: [{
-        type: String,
-        required: true
-    }],
-    isCustomizable: {
-        type: Boolean,
-        default: false
-    },
-    customizationOptions: {
-        // For things like available text engaving/embroidery
-        type: String,
-        default: ''
-    },
-    material: {
-        type: String,
-        required: true
-    },
-    size: {
-        type: String,
-        required: true
-    },
-    stock: {
-        type: Number,
-        required: true,
-        default: 0
-    },
-    deliveryTime: {
-        type: String,
-        default: '4-5 Days'
-    }
-}, {
-    timestamps: true
-});
+  seller: {
+    type:     mongoose.Schema.Types.ObjectId,
+    ref:      'User',
+    required: true,
+  },
+  name:        { type: String, required: true, trim: true },
+  category:    {
+    type: String,
+    required: true,
+    enum: ['metal','fabric','decor','clay','wood','leath','floral','other'],
+  },
+  price:       { type: Number, required: true, min: 1 },
+  stock:       { type: Number, required: true, min: 0, default: 1 },
+  sold:        { type: Number, default: 0 },
+  description: { type: String, trim: true },
+  technique:   { type: String, trim: true },
+  origin:      { type: String, trim: true },
+  tags:        [{ type: String, trim: true }],
+  images:      [{ type: String }],
+  emoji:       { type: String, default: '🎁' },
+  approved:    { type: Boolean, default: true },
+  isActive:    { type: Boolean, default: true },
+}, { timestamps: true })
 
-const Product = mongoose.model('Product', productSchema);
-module.exports = Product;
+// Indexes for fast filtering & search
+productSchema.index({ category: 1 })
+productSchema.index({ seller: 1 })
+productSchema.index({ approved: 1, isActive: 1 })
+productSchema.index({ name: 'text', description: 'text', tags: 'text' })
+
+export default mongoose.model('Product', productSchema)

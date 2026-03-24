@@ -1,41 +1,32 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+import mongoose from 'mongoose'
+import bcrypt   from 'bcryptjs'
 
 const userSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: [true, 'Please add a name']
-    },
-    email: {
-        type: String,
-        required: [true, 'Please add an email'],
-        unique: true
-    },
-    password: {
-        type: String,
-        required: [true, 'Please add a password']
-    },
-    isAdmin: {
-        type: Boolean,
-        default: false
-    }
-}, {
-    timestamps: true
-});
+  name:     { type: String, required: true, trim: true },
+  email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
+  password: { type: String, required: true, minlength: 6, select: false },
+  phone:    { type: String, trim: true },
+  village:  { type: String, trim: true },
+  craft:    { type: String, trim: true },
+  role:     { type: String, enum: ['user', 'admin'], default: 'user' },
+  balance:  { type: Number, default: 0 },
+  avatar:   { type: String, default: '' },
+  isActive: { type: Boolean, default: true },
+}, { timestamps: true })
 
-// Hash password before saving
+// Hash password before save
 userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) {
-        next();
-    }
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-});
+  if (!this.isModified('password')) return next()
+  this.password = await bcrypt.hash(this.password, 12)
+  next()
+})
 
-// Match user entered password to hashed password in database
-userSchema.methods.matchPassword = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
-};
+// Compare password
+userSchema.methods.matchPassword = async function (entered) {
+  return await bcrypt.compare(entered, this.password)
+}
 
-const User = mongoose.model('User', userSchema);
-module.exports = User;
+// Index for fast email lookup
+userSchema.index({ email: 1 })
+
+export default mongoose.model('User', userSchema)

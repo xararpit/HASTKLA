@@ -1,15 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { MOCK_PRODUCTS } from '../data/products'
-
-const MOCK_ORDERS = [
-  { _id:'o1', productName:'Brass Ganesha Idol',       emoji:'🔱', amount:1200, type:'bought', status:'delivered', date:'2025-02-01' },
-  { _id:'o2', productName:'Chanderi Silk Saree',       emoji:'🎋', amount:3400, type:'sold',   status:'shipped',   date:'2025-02-10' },
-  { _id:'o3', productName:'Dried Marigold Wreath',     emoji:'🌸', amount:450,  type:'bought', status:'delivered', date:'2025-02-20' },
-  { _id:'o4', productName:'Pressed Wildflower Frame',  emoji:'🌼', amount:320,  type:'bought', status:'processing',date:'2025-03-01' },
-  { _id:'o5', productName:'Terracotta Wall Panel',     emoji:'🎨', amount:850,  type:'sold',   status:'delivered', date:'2025-03-05' },
-]
+import api from '../api/axios'
 
 const statusBadge = (s) => {
   const map = { delivered:'badge-green', shipped:'badge-blue', processing:'badge-orange', cancelled:'badge-red', pending:'badge-muted' }
@@ -20,11 +12,38 @@ const Dashboard = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState('overview')
+  const [myListings, setMyListings] = useState([])
+  const [purchases, setPurchases] = useState([])
+  const [sales, setSales] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const myListings = MOCK_PRODUCTS.filter(p => p.seller._id === user?._id)
-  const bought     = MOCK_ORDERS.filter(o => o.type === 'bought')
-  const sold       = MOCK_ORDERS.filter(o => o.type === 'sold')
-  const totalEarned = myListings.reduce((a,p) => a + p.price * p.sold, 0)
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [listRes, purRes, salRes] = await Promise.all([
+          api.get('/products/my'),
+          api.get('/orders/my-purchases'),
+          api.get('/orders/my-sales'),
+        ])
+        setMyListings(listRes.data)
+        setPurchases(purRes.data)
+        setSales(salRes.data)
+      } catch (err) {
+        console.error('Dashboard fetch error:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  const totalEarned = sales.reduce((a, o) => a + o.amount, 0)
+
+  // Combine purchases and sales for recent activity
+  const recentActivity = [
+    ...purchases.map(o => ({ ...o, type: 'bought' })),
+    ...sales.map(o => ({ ...o, type: 'sold' })),
+  ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10)
 
   const TABS = [
     { id:'overview',  icon:'📊', label:'Overview' },
@@ -32,6 +51,22 @@ const Dashboard = () => {
     { id:'purchases', icon:'🛍️', label:'Purchases' },
     { id:'sales',     icon:'💰', label:'Sales' },
   ]
+
+  if (loading) {
+    return (
+      <div className="shell">
+        <div className="sidebar">
+          <div className="sb-logo">HAST<span>KLA</span></div>
+        </div>
+        <div className="shell-main" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ textAlign:'center' }}>
+            <span className="spinner" style={{ width:32, height:32 }} />
+            <p style={{ color:'var(--muted)', marginTop:'1rem', fontSize:'0.88rem' }}>Loading your dashboard…</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="shell">
@@ -83,8 +118,8 @@ const Dashboard = () => {
           <p>
             {tab === 'overview'  && `Welcome back, ${user?.name}! Here's your activity summary.`}
             {tab === 'listings'  && `${myListings.length} products listed · Anyone on HASTKLA can buy them`}
-            {tab === 'purchases' && `${bought.length} orders placed`}
-            {tab === 'sales'     && `${sold.length} items sold`}
+            {tab === 'purchases' && `${purchases.length} orders placed`}
+            {tab === 'sales'     && `${sales.length} items sold`}
           </p>
         </div>
         <div className="page-body">
@@ -102,28 +137,27 @@ const Dashboard = () => {
                   <div className="stat-lbl">Total Earned</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-num" style={{ color:'var(--indigo)' }}>{bought.length}</div>
+                  <div className="stat-num" style={{ color:'var(--indigo)' }}>{purchases.length}</div>
                   <div className="stat-lbl">Purchases</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-num" style={{ color:'var(--saffron)' }}>{sold.length}</div>
+                  <div className="stat-num" style={{ color:'var(--saffron)' }}>{sales.length}</div>
                   <div className="stat-lbl">Items Sold</div>
                 </div>
               </div>
 
-              {/* Recent activity */}
               <div style={{ marginBottom:'0.8rem', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.4rem', fontWeight:600 }}>Recent Activity</h2>
               </div>
               <div className="table-card">
-                {MOCK_ORDERS.map(o => (
+                {recentActivity.length > 0 ? recentActivity.map(o => (
                   <div key={o._id} className="history-item">
-                    <div className="history-icon">{o.emoji}</div>
+                    <div className="history-icon">{o.product?.emoji || '🎁'}</div>
                     <div>
-                      <div className="history-name">{o.productName}</div>
+                      <div className="history-name">{o.product?.name || 'Product'}</div>
                       <div className="history-meta">
                         <span>{o.type === 'bought' ? 'Purchased' : 'Sold'}</span>
-                        <span>·</span><span>{o.date}</span>
+                        <span>·</span><span>{new Date(o.createdAt).toLocaleDateString('en-IN')}</span>
                         <span>·</span>{statusBadge(o.status)}
                       </div>
                     </div>
@@ -131,7 +165,13 @@ const Dashboard = () => {
                       {o.type === 'sold' ? '+' : '−'}₹{o.amount.toLocaleString('en-IN')}
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="empty-state">
+                    <div className="icon">📊</div>
+                    <div className="title">No activity yet</div>
+                    <div className="sub">Start buying or selling to see your activity here.</div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -147,15 +187,17 @@ const Dashboard = () => {
                 <div className="product-grid">
                   {myListings.map(p => (
                     <div key={p._id} style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:'var(--radius-lg)', overflow:'hidden' }}>
-                      <div style={{ height:140, background:'#C4622D', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'3rem' }}>{p.emoji}</div>
+                      <div style={{ height:140, background:'#C4622D', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'3rem', overflow:'hidden' }}>
+                        {p.images?.[0] ? <img src={p.images[0]} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : p.emoji || '🎁'}
+                      </div>
                       <div style={{ padding:'0.9rem 1rem' }}>
                         <div style={{ fontWeight:700, fontSize:'0.9rem', marginBottom:'0.2rem' }}>{p.name}</div>
-                        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.2rem', fontWeight:600, color:'var(--clay)' }}>₹{p.price.toLocaleString('en-IN')}</div>
+                        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.2rem', fontWeight:600, color:'var(--clay)' }}>₹{p.price?.toLocaleString('en-IN')}</div>
                         <div style={{ fontSize:'0.72rem', color:'var(--muted)', marginTop:'0.3rem', display:'flex', gap:'0.6rem' }}>
-                          <span>{p.sold} sold</span><span>·</span><span>{p.stock} in stock</span>
+                          <span>{p.sold || 0} sold</span><span>·</span><span>{p.stock || 0} in stock</span>
                         </div>
                         <div style={{ marginTop:'0.6rem' }}>
-                          <span className="badge badge-green">Live</span>
+                          {p.approved ? <span className="badge badge-green">✓ Live</span> : <span className="badge badge-orange">Pending</span>}
                         </div>
                       </div>
                     </div>
@@ -175,12 +217,12 @@ const Dashboard = () => {
           {/* ── PURCHASES ── */}
           {tab === 'purchases' && (
             <div className="table-card">
-              {bought.length > 0 ? bought.map(o => (
+              {purchases.length > 0 ? purchases.map(o => (
                 <div key={o._id} className="history-item">
-                  <div className="history-icon">{o.emoji}</div>
+                  <div className="history-icon">{o.product?.emoji || '🎁'}</div>
                   <div>
-                    <div className="history-name">{o.productName}</div>
-                    <div className="history-meta"><span>{o.date}</span><span>·</span>{statusBadge(o.status)}</div>
+                    <div className="history-name">{o.product?.name || 'Product'}</div>
+                    <div className="history-meta"><span>{new Date(o.createdAt).toLocaleDateString('en-IN')}</span><span>·</span>{statusBadge(o.status)}</div>
                   </div>
                   <div className="history-amount spent">−₹{o.amount.toLocaleString('en-IN')}</div>
                 </div>
@@ -197,12 +239,12 @@ const Dashboard = () => {
           {/* ── SALES ── */}
           {tab === 'sales' && (
             <div className="table-card">
-              {sold.length > 0 ? sold.map(o => (
+              {sales.length > 0 ? sales.map(o => (
                 <div key={o._id} className="history-item">
-                  <div className="history-icon">{o.emoji}</div>
+                  <div className="history-icon">{o.product?.emoji || '🎁'}</div>
                   <div>
-                    <div className="history-name">{o.productName}</div>
-                    <div className="history-meta"><span>{o.date}</span><span>·</span>{statusBadge(o.status)}</div>
+                    <div className="history-name">{o.product?.name || 'Product'}</div>
+                    <div className="history-meta"><span>{new Date(o.createdAt).toLocaleDateString('en-IN')}</span><span>·</span>{statusBadge(o.status)}</div>
                   </div>
                   <div className="history-amount earn">+₹{o.amount.toLocaleString('en-IN')}</div>
                 </div>

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
+import api from '../api/axios'
 
 const CATEGORIES = [
   { id:'metal',  name:'Metalwork',        icon:'🔨' },
@@ -19,7 +20,7 @@ const ListProduct = () => {
   const navigate  = useNavigate()
   const fileRef   = useRef()
 
-  const [imgFile, setImgFile]   = useState(null)
+  const [imgFiles, setImgFiles] = useState([])
   const [imgB64,  setImgB64]    = useState(null)
   const [imgMime, setImgMime]   = useState(null)
   const [aiRes,   setAiRes]     = useState(null)
@@ -39,7 +40,7 @@ const ListProduct = () => {
   /* Load image file */
   const loadFile = (file) => {
     if (!file) return
-    setImgFile(file); setAiRes(null); setAiErr('')
+    setImgFiles([file]); setAiRes(null); setAiErr('')
     const r = new FileReader()
     r.onload = e => {
       const src = e.target.result
@@ -57,7 +58,7 @@ const ListProduct = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20240620', // Updated to a stable model name
+          model: 'claude-3-5-sonnet-20240620',
           max_tokens: 900,
           messages: [{
             role: 'user',
@@ -75,7 +76,6 @@ const ListProduct = () => {
       const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
       setAiRes(parsed)
 
-      // Auto-fill form
       const catMatch = CATEGORIES.find(c => c.name === parsed.category)
       setForm(f => ({
         ...f,
@@ -93,7 +93,7 @@ const ListProduct = () => {
     setAiLoading(false)
   }
 
-  /* Submit */
+  /* Submit to real API */
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.name || !form.category || !form.price) {
@@ -102,14 +102,29 @@ const ListProduct = () => {
     }
     setSaving(true)
 
-    // Mock API call
-    await new Promise(r => setTimeout(r, 800))
-    setSaving(false)
-    showToast(`✅ "${form.name}" is now live on HASTKLA!`)
-    setTimeout(() => navigate('/dashboard'), 1500)
+    try {
+      const fd = new FormData()
+      fd.append('name', form.name)
+      fd.append('category', form.category)
+      fd.append('price', form.price)
+      fd.append('stock', form.stock || '1')
+      fd.append('description', form.description)
+      fd.append('technique', form.technique)
+      fd.append('origin', form.origin)
+      fd.append('tags', JSON.stringify(form.tags.split(',').map(t => t.trim()).filter(Boolean)))
+      imgFiles.forEach(f => fd.append('images', f))
+
+      await api.post('/products', fd)
+      showToast(`✅ "${form.name}" is now listed on HASTKLA!`)
+      setTimeout(() => navigate('/dashboard'), 1500)
+    } catch (err) {
+      showToast(`⚠️ ${err.response?.data?.message || 'Failed to list product. Try again.'}`)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const imgURL = imgFile ? URL.createObjectURL(imgFile) : null
+  const imgURL = imgFiles[0] ? URL.createObjectURL(imgFiles[0]) : null
 
   return (
     <>
@@ -134,12 +149,12 @@ const ListProduct = () => {
               {/* IMAGE UPLOAD */}
               <div className="form-group">
                 <label className="form-label">Real Product Photo *</label>
-                {imgFile ? (
+                {imgFiles[0] ? (
                   <div style={{ position:'relative', borderRadius:14, overflow:'hidden', marginBottom:'0.8rem' }}>
                     <img src={imgURL} alt="preview" style={{ width:'100%', maxHeight:260, objectFit:'cover', display:'block', borderRadius:14 }} />
                     <button type="button"
                       style={{ position:'absolute', top:8, right:8, background:'rgba(0,0,0,0.5)', color:'#fff', border:'none', borderRadius:20, padding:'4px 10px', fontSize:'0.72rem', cursor:'pointer', fontFamily:'Nunito,sans-serif', fontWeight:600 }}
-                      onClick={() => { setImgFile(null); setImgB64(null); setAiRes(null) }}>
+                      onClick={() => { setImgFiles([]); setImgB64(null); setAiRes(null) }}>
                       × Change
                     </button>
                   </div>

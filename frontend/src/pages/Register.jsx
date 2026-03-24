@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
+import api from '../api/axios'
 
 const CRAFTS = ['Metalwork','Fabric & Textile','Clay & Pottery','Woodcraft','Leather & Bags','Floral Crafts','Decorative Art','Other']
 
@@ -21,13 +22,21 @@ const Register = () => {
       setError('Please fill in all required fields.')
       return
     }
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters.')
+      return
+    }
     setLoading(true)
 
-    // ── Replace with: axios.post('/api/auth/register', form)
-    await new Promise(r => setTimeout(r, 700))
-    const newUser = { _id: 'u_' + Date.now(), name:form.name, email:form.email, phone:form.phone, village:form.village, craft:form.craft, role:'user', balance:0 }
-    login(newUser, 'mock-jwt-token')
-    navigate('/dashboard')
+    try {
+      const { data } = await api.post('/auth/register', form)
+      login(data.user, data.token)
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -49,15 +58,15 @@ const Register = () => {
               <div className="form-grid">
                 <div className="form-group">
                   <label className="form-label">Full Name *</label>
-                  <input className="form-input" placeholder="Your name" value={form.name} onChange={e => set('name', e.target.value)} required />
+                  <input className="form-input" placeholder="Your name" value={form.name} onChange={e => set('name', e.target.value)} required autoComplete="name" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Phone Number</label>
-                  <input className="form-input" type="tel" placeholder="+91 98765 43210" value={form.phone} onChange={e => set('phone', e.target.value)} />
+                  <input className="form-input" type="tel" placeholder="+91 98765 43210" value={form.phone} onChange={e => set('phone', e.target.value)} autoComplete="tel" />
                 </div>
                 <div className="form-group full">
                   <label className="form-label">Email Address *</label>
-                  <input className="form-input" type="email" placeholder="you@example.com" value={form.email} onChange={e => set('email', e.target.value)} required />
+                  <input className="form-input" type="email" placeholder="you@example.com" value={form.email} onChange={e => set('email', e.target.value)} required autoComplete="email" />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Village / City *</label>
@@ -72,7 +81,7 @@ const Register = () => {
                 </div>
                 <div className="form-group full">
                   <label className="form-label">Password *</label>
-                  <input className="form-input" type="password" placeholder="Min. 6 characters" value={form.password} onChange={e => set('password', e.target.value)} required minLength={6} />
+                  <input className="form-input" type="password" placeholder="Min. 6 characters" value={form.password} onChange={e => set('password', e.target.value)} required minLength={6} autoComplete="new-password" />
                 </div>
               </div>
 

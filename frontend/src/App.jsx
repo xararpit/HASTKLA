@@ -14,6 +14,7 @@ import About          from './pages/About'
 import Contact        from './pages/Contact'
 import Policies       from './pages/Policies'
 import Cart           from './pages/Cart'
+import OrderSuccess  from './pages/OrderSuccess'
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
               <Route path="/contact"     element={<Contact />} />
               <Route path="/policies"    element={<Policies />} />
               <Route path="/cart"        element={<Cart />} />
+              <Route path="/order-success" element={<OrderSuccess />} />
 
               {/* Protected — any logged-in user */}
               <Route path="/dashboard"    element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

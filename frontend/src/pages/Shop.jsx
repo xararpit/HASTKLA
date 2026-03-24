@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import ProductCard from '../components/ProductCard'
 import CategoryFilter from '../components/CategoryFilter'
+import CheckoutModal from '../components/CheckoutModal'
 import { MOCK_PRODUCTS } from '../data/products'
 import Footer from '../components/Footer'
 import { useAuth } from '../context/AuthContext'
@@ -14,33 +15,7 @@ const SORT_OPTIONS = [
   { value:'popular',    label:'Most Popular' },
 ]
 
-const BuyModal = ({ product, onConfirm, onClose }) => {
-  if (!product) return null
-  return (
-    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="modal-box">
-        <div className="modal-title">Confirm Purchase</div>
-        <div className="modal-sub">Payment will be processed securely via Razorpay.</div>
-        <div style={{ display:'flex', alignItems:'center', gap:'0.9rem', background:'var(--warm)', borderRadius:12, padding:'1rem', marginBottom:'1.5rem' }}>
-          <div style={{ width:52, height:52, borderRadius:10, background:'var(--clay)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.6rem', flexShrink:0 }}>
-            {product.emoji}
-          </div>
-          <div>
-            <div style={{ fontWeight:700, fontSize:'0.9rem' }}>{product.name}</div>
-            <div style={{ fontSize:'0.72rem', color:'var(--muted)' }}>by {product.seller?.name}</div>
-            <div style={{ fontFamily:"'Cormorant Garamond',serif", fontWeight:600, color:'var(--clay)', fontSize:'1.2rem' }}>
-              ₹{product.price?.toLocaleString('en-IN')}
-            </div>
-          </div>
-        </div>
-        <div style={{ display:'flex', gap:'0.7rem', justifyContent:'flex-end' }}>
-          <button className="btn btn-warm" onClick={onClose}>Cancel</button>
-          <button className="btn btn-clay" onClick={() => onConfirm(product)}>Confirm & Pay →</button>
-        </div>
-      </div>
-    </div>
-  )
-}
+
 
 const Shop = () => {
   const { user } = useAuth()
@@ -79,11 +54,9 @@ const Shop = () => {
     return sorted
   }, [products, query, category, sort])
 
-  const handleBuyConfirm = (product) => {
+  const handleBuyClick = (product) => {
     if (!user) { navigate('/login'); return }
-    // TODO: axios.post('/api/orders', { productId: product._id })
-    setBuyModal(null)
-    showToast(`🎉 Order placed! "${product.name}" is on its way.`)
+    setBuyModal(product)
   }
 
   return (
@@ -142,7 +115,17 @@ const Shop = () => {
         </div>
       </div>
 
-      <BuyModal product={buyModal} onConfirm={handleBuyConfirm} onClose={() => setBuyModal(null)} />
+      {buyModal && (
+        <CheckoutModal
+          product={buyModal}
+          user={user}
+          onClose={() => setBuyModal(null)}
+          onSuccess={() => {
+            setBuyModal(null)
+            showToast(`🎉 Payment successful! Your order is confirmed.`)
+          }}
+        />
+      )}
       {toast && <div className="toast">{toast}</div>}
       <Footer />
     </>
